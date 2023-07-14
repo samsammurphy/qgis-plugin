@@ -24,6 +24,7 @@
 
 import os
 import json
+import xarray as xr
 
 from qgis.PyQt import QtGui, QtWidgets, uic
 from qgis.PyQt.QtCore import pyqtSignal
@@ -34,7 +35,11 @@ from qgis.core import QgsGeometry
 from qgis.gui import QgsMapTool
 from PyQt5.QtWidgets import QGraphicsScene
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import QVBoxLayout
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
+from graphs import graph_sims_and_obs_matplotlib
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'hydrological_analysis_tool_dockwidget_base.ui'))
@@ -55,25 +60,26 @@ class HydrologicalAnalysisToolDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.setupUi(self)
         self.iface = iface
 
-        # event handlers
-
         # user clicks on button
         self.pushButton.clicked.connect(self.onPushButtonClicked)
 
-        # identify tool is used
-        # self.iface.mapCanvas().identifyResults.connect(self.handleIdentifyResults)
+        obs = xr.open_dataset('/Users/masw/Documents/hat/prototype/obs.nc')
+        sims = xr.open_dataset('/Users/masw/Documents/hat/prototype/sims.nc')
+        station_id = 'G7062'
 
-        # Load the image into a QPixmap
-        pixmap = QPixmap('/Users/masw/Desktop/plot.png')
+        # Create the Matplotlib figure and axes
+        fig = graph_sims_and_obs_matplotlib(sims, obs, station_id)
 
-        # Create a QGraphicsScene
-        scene = QGraphicsScene()
+        # Create the canvas with the figure
+        self.canvas = FigureCanvas(fig)
 
-        # Add the QPixmap to the QGraphicsScene
-        scene.addPixmap(pixmap)
+        # Create a layout and add the canvas to it
+        layout = QVBoxLayout()
 
-        # Set the QGraphicsScene for your QGraphicsView
-        self.graphicsView.setScene(scene)
+        layout.addWidget(self.canvas)
+
+        # Set this layout to the plotWidget
+        self.plotWidget.setLayout(layout)
 
 
     def closeEvent(self, event):
@@ -98,8 +104,3 @@ class HydrologicalAnalysisToolDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         # Otherwise, add the layer to the current project
         QgsProject.instance().addMapLayer(layer)
-
-    # def handleIdentifyResults(self, results):
-    #     for result in results:
-    #         if 'station_id' in result.attributes():
-    #             QgsMessageLog.logMessage(f"Station ID {result.attribute('station_id')}", 'my plugin', Qgis.Info)
