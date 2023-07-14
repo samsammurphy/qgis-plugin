@@ -32,6 +32,8 @@ from qgis.core import QgsVectorLayer, QgsProject
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.core import QgsGeometry
 from qgis.gui import QgsMapTool
+from PyQt5.QtWidgets import QGraphicsScene
+from PyQt5.QtGui import QPixmap
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -60,6 +62,19 @@ class HydrologicalAnalysisToolDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
         # identify tool is used
         # self.iface.mapCanvas().identifyResults.connect(self.handleIdentifyResults)
+
+        # Load the image into a QPixmap
+        pixmap = QPixmap('/Users/masw/Desktop/plot.png')
+
+        # Create a QGraphicsScene
+        scene = QGraphicsScene()
+
+        # Add the QPixmap to the QGraphicsScene
+        scene.addPixmap(pixmap)
+
+        # Set the QGraphicsScene for your QGraphicsView
+        self.graphicsView.setScene(scene)
+
 
     def closeEvent(self, event):
         self.closingPlugin.emit()
