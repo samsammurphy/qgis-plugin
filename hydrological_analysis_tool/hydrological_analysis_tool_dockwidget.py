@@ -23,9 +23,16 @@
 """
 
 import os
+import json
 
 from qgis.PyQt import QtGui, QtWidgets, uic
 from qgis.PyQt.QtCore import pyqtSignal
+from qgis.core import QgsMessageLog, Qgis
+from qgis.core import QgsVectorLayer, QgsProject
+from qgis.PyQt.QtWidgets import QMessageBox
+from qgis.core import QgsGeometry
+from qgis.gui import QgsMapTool
+
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'hydrological_analysis_tool_dockwidget_base.ui'))
@@ -35,7 +42,7 @@ class HydrologicalAnalysisToolDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
     closingPlugin = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, iface, parent=None):
         """Constructor."""
         super(HydrologicalAnalysisToolDockWidget, self).__init__(parent)
         # Set up the user interface from Designer.
@@ -44,7 +51,40 @@ class HydrologicalAnalysisToolDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         # http://doc.qt.io/qt-5/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.iface = iface
+
+        # event handlers
+
+        # user clicks on button
+        self.pushButton.clicked.connect(self.onPushButtonClicked)
+
+        # identify tool is used
+        # self.iface.mapCanvas().identifyResults.connect(self.handleIdentifyResults)
 
     def closeEvent(self, event):
         self.closingPlugin.emit()
         event.accept()
+
+    def getFilePath(self):
+        filepath = self.lineEdit.text()
+        return filepath
+
+    def onPushButtonClicked(self):
+
+        filepath = self.getFilePath()
+
+        if not os.path.exists(filepath):
+            QgsMessageLog.logMessage(f"Filepath does not exist: {filepath}", 'my plugin', Qgis.Critical)
+            QMessageBox.warning(self, "Filepath does not exist", "Please check the file path and try again.")
+            return
+
+        # Create the QgsVectorLayer object
+        layer = QgsVectorLayer(filepath, "My GeoJSON Layer", "ogr")
+
+        # Otherwise, add the layer to the current project
+        QgsProject.instance().addMapLayer(layer)
+
+    # def handleIdentifyResults(self, results):
+    #     for result in results:
+    #         if 'station_id' in result.attributes():
+    #             QgsMessageLog.logMessage(f"Station ID {result.attribute('station_id')}", 'my plugin', Qgis.Info)
